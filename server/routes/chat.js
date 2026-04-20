@@ -129,56 +129,53 @@ function getFallbackResponse(message, detailedCtx) {
 router.post("/chat", async (req, res) => {
   const { message, history = [] } = req.body;
   console.log(">>> CHAT ROUTE HIT");
-  console.log(">>> API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
 
-  if (!message) {
-    return res.status(400).json({ error: "Message is required" });
-  }
-
-  const crowdContext = buildCrowdContext();
-  const detailedCtx = buildDetailedCrowdContext();
-
-  // ─── 1. Primary Brain: Gemini AI
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      console.log(">>> PRIMARY BRAIN: Attempting Gemini AI (gemini-2.5-flash)");
-      
-      const { GoogleGenerativeAI } = require("@google/generative-ai");
-      const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = client.getGenerativeModel({
-        model: "gemini-2.5-flash",
-        systemInstruction: SYSTEM_PROMPT,
-      });
-
-      let chatHistory = history.slice(-6).map((msg) => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.content }],
-      }));
-      while (chatHistory.length > 0 && chatHistory[0].role !== "user") {
-        chatHistory.shift();
-      }
-
-      const chat = model.startChat({ history: chatHistory });
-      const userMessageWithContext = `[LIVE CROWD & EVENT CONTEXT]\n${crowdContext}\n\n[USER QUESTION]\n${message}`;
-      
-      const result = await chat.sendMessage(userMessageWithContext);
-      const text = result.response.text();
-
-      if (text && text.length > 0) {
-        console.log(">>> GEMINI SUCCESS: Response generated");
-        return res.json({ response: text, source: "gemini" });
-      }
-    } catch (err) {
-      console.error(">>> GEMINI FAILED:", err.message);
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      console.log(">>> NO API KEY");
+      throw new Error("Missing API key");
     }
-  } else {
-    console.log(">>> GEMINI SKIPPED: Missing API Key in environment");
-  }
 
-  // ─── 2. Secondary Brain: Intelligent Fallback
-  console.log(">>> FALLBACK USED: Serving hardcoded intelligence");
-  const fallback = getFallbackResponse(message, detailedCtx);
-  res.json({ response: fallback, source: "fallback" });
+    console.log(">>> PRIMARY BRAIN: Attempting Gemini AI");
+
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: SYSTEM_PROMPT
+    });
+
+    let chatHistory = history.slice(-6).map((msg) => ({
+      role: msg.role === "user" ? "user" : "model",
+      parts: [{ text: msg.content }],
+    }));
+    while (chatHistory.length > 0 && chatHistory[0].role !== "user") {
+      chatHistory.shift();
+    }
+
+    const chat = model.startChat({ history: chatHistory });
+    const userMessageWithContext = `[LIVE CROWD & EVENT CONTEXT]\n${buildCrowdContext()}\n\n[USER QUESTION]\n${message}`;
+
+    const result = await chat.sendMessage(userMessageWithContext);
+    const text = result.response.text();
+
+    console.log(">>> GEMINI SUCCESS");
+    return res.json({ response: text, source: "gemini" });
+
+  } catch (err) {
+    console.error(">>> GEMINI ERROR:", err.message);
+    
+    // Safety: use rule-based fallback instead of crashing
+    console.log(">>> Serving intelligent fallback response due to error");
+    const detailedCtx = buildDetailedCrowdContext();
+    const fallbackText = getFallbackResponse(message, detailedCtx);
+    
+    return res.json({ 
+      response: fallbackText, 
+      source: "fallback",
+      error: err.message 
+    });
+  }
 });
 
 module.exports = router;
