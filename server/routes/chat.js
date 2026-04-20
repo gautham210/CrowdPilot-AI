@@ -131,8 +131,9 @@ router.post("/chat", async (req, res) => {
   console.log(">>> CHAT ROUTE HIT");
 
   try {
+    console.log(">>> API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
+    
     if (!process.env.GEMINI_API_KEY) {
-      console.log(">>> NO API KEY");
       throw new Error("Missing API key");
     }
 
@@ -141,40 +142,27 @@ router.post("/chat", async (req, res) => {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       systemInstruction: SYSTEM_PROMPT
     });
 
-    let chatHistory = history.slice(-6).map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    }));
-    while (chatHistory.length > 0 && chatHistory[0].role !== "user") {
-      chatHistory.shift();
-    }
+    const context = buildCrowdContext();
+    const prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${message}`;
 
-    const chat = model.startChat({ history: chatHistory });
-    const userMessageWithContext = `[LIVE CROWD & EVENT CONTEXT]\n${buildCrowdContext()}\n\n[USER QUESTION]\n${message}`;
-
-    const result = await chat.sendMessage(userMessageWithContext);
+    const result = await model.generateContent(prompt);
     const text = result.response.text();
 
     console.log(">>> GEMINI SUCCESS");
-    return res.json({ response: text, source: "gemini" });
+    return res.json({ response: text });
 
   } catch (err) {
     console.error(">>> GEMINI ERROR:", err.message);
     
-    // Safety: use rule-based fallback instead of crashing
-    console.log(">>> Serving intelligent fallback response due to error");
+    console.log(">>> FALLBACK USED");
     const detailedCtx = buildDetailedCrowdContext();
     const fallbackText = getFallbackResponse(message, detailedCtx);
     
-    return res.json({ 
-      response: fallbackText, 
-      source: "fallback",
-      error: err.message 
-    });
+    return res.json({ response: fallbackText });
   }
 });
 
