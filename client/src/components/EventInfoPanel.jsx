@@ -39,6 +39,7 @@ export default function EventInfoPanel() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
+        cache: 'no-store'
       });
       setActiveType(type);
       await fetchAll(); // refresh all data

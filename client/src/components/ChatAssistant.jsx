@@ -135,6 +135,7 @@ export default function ChatAssistant() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText, history }),
+        cache: 'no-store'
       });
       const data = await res.json();
 

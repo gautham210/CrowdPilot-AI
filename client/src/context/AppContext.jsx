@@ -18,10 +18,10 @@ export function AppProvider({ children }) {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
     try {
       const [crowdRes, timelineRes, recRes, predRes] = await Promise.all([
-        fetch(`${API_BASE}/api/crowd`),
-        fetch(`${API_BASE}/api/timeline`),
-        fetch(`${API_BASE}/api/recommendation`),
-        fetch(`${API_BASE}/api/predictions`),
+        fetch(`${API_BASE}/api/crowd`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/timeline`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/recommendation`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/predictions`, { cache: 'no-store' }),
       ]);
 
       const [crowd, tl, rec, pred] = await Promise.all([
