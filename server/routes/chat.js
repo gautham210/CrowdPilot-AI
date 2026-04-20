@@ -138,9 +138,11 @@ router.post("/chat", async (req, res) => {
   const crowdContext = buildCrowdContext();
   const detailedCtx = buildDetailedCrowdContext();
 
-  // ─── Use Gemini if available
+  // ─── 1. Primary Brain: Gemini AI
   if (process.env.GEMINI_API_KEY) {
     try {
+      console.log(">>> PRIMARY BRAIN: Attempting Gemini AI (gemini-2.5-flash)");
+      
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = client.getGenerativeModel({
@@ -148,13 +150,10 @@ router.post("/chat", async (req, res) => {
         systemInstruction: SYSTEM_PROMPT,
       });
 
-      console.log(">>> Calling Gemini (gemini-2.5-flash)...");
-
       let chatHistory = history.slice(-6).map((msg) => ({
         role: msg.role === "user" ? "user" : "model",
         parts: [{ text: msg.content }],
       }));
-      // Gemini expects history to start with a 'user' role
       while (chatHistory.length > 0 && chatHistory[0].role !== "user") {
         chatHistory.shift();
       }
@@ -165,18 +164,19 @@ router.post("/chat", async (req, res) => {
       const result = await chat.sendMessage(userMessageWithContext);
       const text = result.response.text();
 
-      console.log(">>> Gemini response received successfully");
-      return res.json({ response: text, source: "gemini" });
+      if (text && text.length > 0) {
+        console.log(">>> GEMINI SUCCESS: Response generated");
+        return res.json({ response: text, source: "gemini" });
+      }
     } catch (err) {
-      console.error(">>> GEMINI ERROR:", err.message);
-      console.log(">>> Falling back due to Gemini API error");
+      console.error(">>> GEMINI FAILED:", err.message);
     }
   } else {
-    console.log(">>> Falling back because GEMINI_API_KEY is MISSING in environment");
+    console.log(">>> GEMINI SKIPPED: Missing API Key in environment");
   }
 
-  // ─── Fallback
-  console.log(">>> Serving intelligent fallback response");
+  // ─── 2. Secondary Brain: Intelligent Fallback
+  console.log(">>> FALLBACK USED: Serving hardcoded intelligence");
   const fallback = getFallbackResponse(message, detailedCtx);
   res.json({ response: fallback, source: "fallback" });
 });
