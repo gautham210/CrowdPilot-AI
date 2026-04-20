@@ -217,11 +217,15 @@ export default function ChatAssistant() {
         </div>
 
         {/* Messages */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '1rem 1.5rem',
-        }}>
+        <div 
+          role="log"
+          aria-live="polite"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '1rem 1.5rem',
+          }}
+        >
           {messages.map(msg => (
             <Message key={msg.id} msg={msg} />
           ))}
@@ -307,6 +311,9 @@ export default function ChatAssistant() {
         }}>
           <input
             ref={inputRef}
+            id="chatInput"
+            name="chatInput"
+            aria-label="Chat input"
             className="input-dark"
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -317,6 +324,7 @@ export default function ChatAssistant() {
           />
           <button
             className="btn-primary"
+            aria-label="Send message"
             onClick={() => sendMessage()}
             disabled={isTyping || !input.trim()}
             style={{ flexShrink: 0, padding: '0.6rem 1rem' }}

@@ -48,3 +48,47 @@ npm run dev
 ```
 
 Navigate to **http://localhost:5173** to experience CrowdPilot AI!
+
+---
+
+## 🤖 Google Gemini Integration
+
+CrowdPilot AI leverages Google's Generative AI capabilities via the `@google/generative-ai` SDK.
+
+- **Model Used**: `gemini-1.5-flash`
+- **Purpose**:
+  - Natural language understanding for user queries.
+  - Context-aware responses combining live crowd simulation data and event schedule data.
+- **Dynamic Prompt Injection**:
+  - **Crowd Queries**: Enriched with live venue metrics for navigational intelligence.
+  - **General Queries**: Automatically filtered for factual accuracy without crowd distraction.
+
+### Fail-Safe Architecture
+If the Gemini API encounters a network issue or rate limit, the system gracefully switches to its local **Intelligent Fallback Engine**, ensuring a reliable user experience during critical race moments.
+
+---
+
+## 🔐 Security & Environment Handling
+
+- **Environment Variables**: Sensitive API keys are managed exclusively through `.env` files and are never committed to version control.
+- **Input Validation**: The backend implements strict type checking and a 500-character limit on all chat inputs.
+- **Sanitization**: All user-provided strings are sanitized to strip potentially malicious characters like `<` and `>`, preventing basic script injection.
+- **Rate Awareness**: The system is designed to handle API failures gracefully without exposing stack traces to the end user.
+
+---
+
+## 🧪 Testing Strategy
+
+CrowdPilot AI includes a specialized test suite demonstrating core system integrity.
+
+- **Native Node.js Testing**: Uses the built-in `node:test` runner to maintain a lightweight, zero-dependency footprint.
+- **Coverage Areas**:
+  - API endpoint structure verification.
+  - Input validation and length restriction logic.
+  - Environment variable presence and configuration.
+
+### How to Run Tests
+```bash
+cd server
+node --test server.test.js
+```

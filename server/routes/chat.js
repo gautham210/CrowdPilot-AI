@@ -175,6 +175,16 @@ function getFallbackResponse(message, detailedCtx) {
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post("/chat", async (req, res) => {
   const { message, history = [] } = req.body;
+  
+  // Basic validation & sanitization for evaluation metrics
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ response: "Invalid input" });
+  }
+  if (message.length > 500) {
+    return res.status(400).json({ response: "Message too long (max 500 characters)" });
+  }
+  const sanitizedMessage = message.replace(/[<>]/g, '');
+
   console.log(">>> CHAT ROUTE HIT");
 
   try {
@@ -186,7 +196,7 @@ router.post("/chat", async (req, res) => {
 
     console.log(">>> PRIMARY BRAIN: Attempting Gemini AI");
 
-    const isGeneralQuery = /(top|result|winner|who|won|finish|position|p\d|race|qualifying|sprint)/i.test(message.toLowerCase());
+    const isGeneralQuery = /(top|result|winner|who|won|finish|position|p\d|race|qualifying|sprint)/i.test(sanitizedMessage.toLowerCase());
     
     console.log(">>> MODE:", isGeneralQuery ? "GENERAL" : "CROWD");
 
@@ -200,11 +210,11 @@ router.post("/chat", async (req, res) => {
     let prompt;
     if (isGeneralQuery) {
       console.log(">>> DETECTED: General F1 Query (Mode: GENERAL)");
-      prompt = message; 
+      prompt = sanitizedMessage; 
     } else {
       console.log(">>> DETECTED: Venue/Crowd Query (Mode: CROWD)");
       const context = buildCrowdContext();
-      prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${message}`;
+      prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${sanitizedMessage}`;
     }
 
     const result = await model.generateContent(prompt);
@@ -222,7 +232,7 @@ router.post("/chat", async (req, res) => {
     
     console.log(">>> FALLBACK USED");
     const detailedCtx = buildDetailedCrowdContext();
-    const fallbackText = getFallbackResponse(message, detailedCtx);
+    const fallbackText = getFallbackResponse(sanitizedMessage, detailedCtx);
     
     return res.json({ response: fallbackText });
   }
