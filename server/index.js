@@ -40,9 +40,8 @@ app.listen(PORT, () => {
   if (!process.env.GEMINI_API_KEY) {
     console.warn("⚠️  GEMINI_API_KEY not set — using fallback AI responses");
     console.warn("    Create server/.env with GEMINI_API_KEY=your-key to enable Gemini AI");
-  } else {
-    console.log("✅ Gemini AI enabled");
   }
+  console.log("API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
 });
 
 // trigger restart
