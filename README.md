@@ -51,7 +51,23 @@ Navigate to **http://localhost:5173** to experience CrowdPilot AI!
 
 ---
 
-## 🤖 Google Gemini Integration
+## ☁️ Google Services Used
+
+This project uses Google's Generative AI (Gemini API):
+
+- **Package**: `@google/generative-ai`
+- **Model**: `gemini-1.5-flash`
+- **Purpose**:
+  - Handles all AI chat interactions.
+  - Processes both crowd-based and F1-related queries.
+
+The system dynamically switches between:
+- **Context-aware crowd intelligence mode**: For venue/crowd inquiries.
+- **General F1 knowledge mode**: For race results and driver info.
+
+Gemini acts as the primary intelligence layer of the application, ensuring high-speed, accurate, and helpful fan interactions.
+
+---
 
 CrowdPilot AI leverages Google's Generative AI capabilities via the `@google/generative-ai` SDK.
 
