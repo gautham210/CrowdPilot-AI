@@ -72,8 +72,8 @@ IMPORTANT:
 function getFallbackResponse(message, detailedCtx) {
   const lower = message.toLowerCase();
   
-  if (lower.match(/top|result|winner|driver|race|qualifying|sprint/)) {
-    return "I currently don’t have race result data. Please check the schedule panel.";
+  if (lower.match(/top|result|winner|who|won|position|race|qualifying|sprint/)) {
+    return "I’m having trouble accessing live AI data right now, but based on the schedule, you can see results directly in the session panel.";
   }
 
   const { zones, sessionInfo, predictions } = detailedCtx;
@@ -186,8 +186,10 @@ router.post("/chat", async (req, res) => {
 
     console.log(">>> PRIMARY BRAIN: Attempting Gemini AI");
 
-    const isGeneralQuery = /top|result|winner|who|position|p1|p2|p3/i.test(message);
+    const isGeneralQuery = /(top|result|winner|who|won|finish|position|p\d|race|qualifying|sprint)/i.test(message.toLowerCase());
     
+    console.log(">>> MODE:", isGeneralQuery ? "GENERAL" : "CROWD");
+
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
@@ -206,7 +208,11 @@ router.post("/chat", async (req, res) => {
     }
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = result?.response?.text?.();
+
+    if (!text) {
+      throw new Error("Empty Gemini response");
+    }
 
     console.log(">>> GEMINI SUCCESS");
     return res.json({ response: text });
