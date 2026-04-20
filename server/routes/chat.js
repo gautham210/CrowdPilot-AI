@@ -4,33 +4,68 @@ const { buildCrowdContext, buildDetailedCrowdContext } = require("../engines/dec
 
 // (Gemini SDK initialized dynamically in route)
 
-// ─── Upgraded System Prompt ───────────────────────────────────────────────────
-const SYSTEM_PROMPT = `
-You are CrowdPilot AI — a smart assistant for a Formula 1 venue.
+// ─── Dual-Mode System Prompts ────────────────────────────────────────────────
+const CROWD_PROMPT = `
+You are CrowdPilot AI, an intelligent assistant for live sports venues.
 
-You handle TWO types of queries:
+Your job is to help users:
+- Navigate the venue
+- Avoid crowds
+- Minimize wait times
+- Make smart real-time decisions
 
-1. CROWD / VENUE QUESTIONS → give crowd-optimized recommendations
-2. GENERAL QUESTIONS (like race results, drivers, sessions) → answer directly and correctly
+You are given live data about:
+- Current session
+- Time remaining
+- Crowd density
+- Wait times
+- Zone status
 
-IMPORTANT RULE:
-- If the user asks about RESULTS, DRIVERS, or EVENTS → DO NOT give crowd advice
-- Answer the question directly
+Rules:
+- Always give actionable recommendations
+- Compare options (e.g., "this is 20% less crowded")
+- Be concise but smart
+- Prioritize time-sensitive advice
 
-CROWD RESPONSE RULES (only when relevant):
-- Max 2–3 sentences
-- Compare options
-- Mention time remaining
-- Use real zone data
+Examples:
+User: Where should I eat?
+→ Suggest least crowded food area with reasoning
 
-GENERAL RESPONSE RULES:
-- Answer clearly and directly
-- No crowd suggestions
-- Example:
-  "Top 3 in the F1 Sprint were Norris, Verstappen, and Piastri."
+User: What should I do now?
+→ Suggest best action based on time + crowd
 
-TONE:
-Short, sharp, helpful.
+IMPORTANT:
+- Do NOT answer race results or driver-related questions
+- If asked about race results, say:
+"I focus on live venue intelligence. Please check the schedule panel for results."
+`;
+
+const GENERAL_PROMPT = `
+You are an expert Formula 1 assistant.
+
+Your job is to answer:
+- Race results
+- Session classifications
+- Driver performance
+- F1-related facts
+
+Rules:
+- Be direct and factual
+- No crowd or venue suggestions
+- No unnecessary explanation
+- Answer like a commentator or data analyst
+
+Examples:
+User: Top 3 in sprint race?
+→ "Norris finished first, followed by Verstappen in P2 and Piastri in P3."
+
+User: Who won F1 Academy race?
+→ "Pin won the race, followed by Weug and Chambers."
+
+IMPORTANT:
+- Do NOT mention crowd, gates, food, or navigation
+- Do NOT give suggestions unless explicitly asked
+- Stick strictly to the question
 `;
 
 // ─── Intelligent Fallback ─────────────────────────────────────────────────────
@@ -151,21 +186,21 @@ router.post("/chat", async (req, res) => {
 
     console.log(">>> PRIMARY BRAIN: Attempting Gemini AI");
 
+    const isGeneralQuery = /top|result|winner|who|position|p1|p2|p3/i.test(message);
+    
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_PROMPT
+      systemInstruction: isGeneralQuery ? GENERAL_PROMPT : CROWD_PROMPT
     });
 
-    const isGeneralQuery = /top|result|winner|who|driver|position|race|qualifying|sprint/i.test(message);
     let prompt;
-
     if (isGeneralQuery) {
-      console.log(">>> DETECTED: General Query (filtering crowd context)");
+      console.log(">>> DETECTED: General F1 Query (Mode: GENERAL)");
       prompt = message; 
     } else {
-      console.log(">>> DETECTED: Crowd Query (injecting context)");
+      console.log(">>> DETECTED: Venue/Crowd Query (Mode: CROWD)");
       const context = buildCrowdContext();
       prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${message}`;
     }
