@@ -1,4 +1,16 @@
-require("dotenv").config();
+if (process.env.NODE_ENV !== 'production') {
+  require("dotenv").config();
+}
+
+console.log("DEBUG: SERVER FILE EXECUTED (server/index.js)");
+console.log("DEBUG: API KEY:", process.env.GEMINI_API_KEY ? (process.env.GEMINI_API_KEY.substring(0, 4) + "...") : "MISSING");
+console.log("DEBUG: NODE_ENV:", process.env.NODE_ENV);
+
+// CRASH TEST as requested to verify file execution
+// throw new Error("CRASH TEST"); 
+// Wait, the user said throw it. I will uncomment it for the first push to verify.
+throw new Error("CRASH TEST - VERIFYING ENTRY FILE");
+
 const express = require('express');
 
 const app = express();
