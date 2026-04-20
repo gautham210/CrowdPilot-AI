@@ -2,16 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { buildCrowdContext, buildDetailedCrowdContext } = require("../engines/decisionEngine");
 
-// Attempt to load Gemini SDK
-let GeminiClient = null;
-try {
-  const { GoogleGenerativeAI } = require("@google/generative-ai");
-  if (process.env.GEMINI_API_KEY) {
-    GeminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  }
-} catch (e) {
-  console.warn("Gemini SDK not available, using fallback responses");
-}
+// (Gemini SDK initialized dynamically in route)
 
 // ─── Upgraded System Prompt ───────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are CrowdPilot AI — a sharp, data-driven crowd intelligence assistant for a live Formula 1 Grand Prix venue.
@@ -137,6 +128,8 @@ function getFallbackResponse(message, detailedCtx) {
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post("/chat", async (req, res) => {
   const { message, history = [] } = req.body;
+  console.log(">>> CHAT ROUTE HIT");
+  console.log(">>> API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
 
   if (!message) {
     return res.status(400).json({ error: "Message is required" });
@@ -146,12 +139,16 @@ router.post("/chat", async (req, res) => {
   const detailedCtx = buildDetailedCrowdContext();
 
   // ─── Use Gemini if available
-  if (GeminiClient) {
+  if (process.env.GEMINI_API_KEY) {
     try {
-      const model = GeminiClient.getGenerativeModel({
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = client.getGenerativeModel({
         model: "gemini-2.5-flash",
         systemInstruction: SYSTEM_PROMPT,
       });
+
+      console.log(">>> Calling Gemini (gemini-2.5-flash)...");
 
       let chatHistory = history.slice(-6).map((msg) => ({
         role: msg.role === "user" ? "user" : "model",
@@ -163,18 +160,23 @@ router.post("/chat", async (req, res) => {
       }
 
       const chat = model.startChat({ history: chatHistory });
-
       const userMessageWithContext = `[LIVE CROWD & EVENT CONTEXT]\n${crowdContext}\n\n[USER QUESTION]\n${message}`;
+      
       const result = await chat.sendMessage(userMessageWithContext);
       const text = result.response.text();
 
+      console.log(">>> Gemini response received successfully");
       return res.json({ response: text, source: "gemini" });
     } catch (err) {
-      console.error("Gemini error:", err.message);
+      console.error(">>> GEMINI ERROR:", err.message);
+      console.log(">>> Falling back due to Gemini API error");
     }
+  } else {
+    console.log(">>> Falling back because GEMINI_API_KEY is MISSING in environment");
   }
 
   // ─── Fallback
+  console.log(">>> Serving intelligent fallback response");
   const fallback = getFallbackResponse(message, detailedCtx);
   res.json({ response: fallback, source: "fallback" });
 });
