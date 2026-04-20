@@ -33,8 +33,9 @@ export default function EventInfoPanel() {
   const handleSwitch = async (type) => {
     if (type === activeType || switching) return;
     setSwitching(true);
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
     try {
-      await fetch('/api/event-type', {
+      await fetch(`${API_BASE}/api/event-type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),

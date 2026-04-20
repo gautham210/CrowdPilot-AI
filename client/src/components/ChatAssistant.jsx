@@ -129,8 +129,9 @@ export default function ChatAssistant() {
       content: m.content,
     }));
 
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText, history }),

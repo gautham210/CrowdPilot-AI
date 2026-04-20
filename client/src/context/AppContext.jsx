@@ -15,12 +15,13 @@ export function AppProvider({ children }) {
   const seenPredIds = useRef(new Set());
 
   const fetchAll = useCallback(async () => {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
     try {
       const [crowdRes, timelineRes, recRes, predRes] = await Promise.all([
-        fetch('/api/crowd'),
-        fetch('/api/timeline'),
-        fetch('/api/recommendation'),
-        fetch('/api/predictions'),
+        fetch(`${API_BASE}/api/crowd`),
+        fetch(`${API_BASE}/api/timeline`),
+        fetch(`${API_BASE}/api/recommendation`),
+        fetch(`${API_BASE}/api/predictions`),
       ]);
 
       const [crowd, tl, rec, pred] = await Promise.all([
