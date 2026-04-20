@@ -7,9 +7,12 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:4173"],
-  methods: ["GET", "POST"],
-  credentials: true,
+  origin: [
+    'http://localhost:5173',
+    'https://crowd-pilot-ai-6qse.vercel.app'
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
 }));
 app.use(express.json());
 
