@@ -36,6 +36,11 @@ Short, sharp, helpful.
 // ─── Intelligent Fallback ─────────────────────────────────────────────────────
 function getFallbackResponse(message, detailedCtx) {
   const lower = message.toLowerCase();
+  
+  if (lower.match(/top|result|winner|driver|race|qualifying|sprint/)) {
+    return "I currently don’t have race result data. Please check the schedule panel.";
+  }
+
   const { zones, sessionInfo, predictions } = detailedCtx;
 
   const timeLeft = sessionInfo.current?.timeRemaining ?? null;
@@ -153,8 +158,17 @@ router.post("/chat", async (req, res) => {
       systemInstruction: SYSTEM_PROMPT
     });
 
-    const context = buildCrowdContext();
-    const prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${message}`;
+    const isGeneralQuery = /top|result|winner|who|driver|position|race|qualifying|sprint/i.test(message);
+    let prompt;
+
+    if (isGeneralQuery) {
+      console.log(">>> DETECTED: General Query (filtering crowd context)");
+      prompt = message; 
+    } else {
+      console.log(">>> DETECTED: Crowd Query (injecting context)");
+      const context = buildCrowdContext();
+      prompt = `[LIVE CROWD & EVENT CONTEXT]\n${context}\n\n[USER QUESTION]\n${message}`;
+    }
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
